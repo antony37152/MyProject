@@ -12,13 +12,21 @@ import (
 //消费者：计算每个随机数每个位的数字的和
 
 //1个生产者 20个消费者
+
+//itemChan 管道，用于将生产者的随机数传入
 var itemChan chan *item
+
+//resultChan管道，用于将结果传入
 var resultChan chan *result
 
+//item结构体，存入随机数
 type item struct {
 	id  int64
 	num int64
 }
+
+//result结构体 将itemChan中取出的随机数item，
+// 与随机各个位数之和sum存入、
 type result struct {
 	item
 	sum int64
@@ -54,13 +62,16 @@ func calc(num int64) int64 {
 
 //消费者
 func consumer(ch chan *item, resultChan chan *result) {
+	//用tmp 遍历取出管道中的随机数
 	for tmp := range ch {
+		//计算出：取出的随机数的数位和sum
 		sum := calc(tmp.num)
-		//构造result
+		//构造result结构体实例，存入从管道中取出的item,及sum
 		retObj := &result{
 			item: *tmp,
 			sum:  sum,
 		}
+		//将构造出的result再次传入管道resultChan
 		resultChan <- retObj
 	}
 
@@ -68,13 +79,17 @@ func consumer(ch chan *item, resultChan chan *result) {
 
 //打印结果
 func printResult(resultChan chan *result) {
+	//遍历出 管道resultChan 中的元素
 	for ret := range resultChan {
-		fmt.Printf("id:%v,num:%v,sum%v\n", ret.item.id, ret.item.num, ret.sum)
+		//打印出管道中取出的result中的各个属性
+		fmt.Printf("id:%v,num:%v,sum%v\n",
+			ret.item.id, ret.item.num, ret.sum)
 		time.Sleep(time.Second)
 	}
 
 }
 
+//对consumer()进行封装，产生n个consumer()线程
 func startWorker(n int, ch chan *item, resultChan chan *result) {
 	for i := 0; i < n; i++ {
 		go consumer(ch, resultChan)
